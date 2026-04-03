@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0f4ff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0e1a" />
+    <meta name="description" content="スマホで遊べる高品質な数独。難易度3段階・ステージ制・メモ・ヒント付き。" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="数独" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>SUDOKU</title>
+  </head>
+  <body>
+
+    <!-- ============================================================
+         ホーム画面
+    ============================================================ -->
+    <div id="home-screen">
+      <div class="home-content">
+
+        <!-- ヒーロー -->
+        <div class="home-hero">
+          <img src="/icons/icon-192.png" alt="SUDOKU" class="home-hero-image" />
+          <h1 class="home-hero-text">SUDOKU</h1>
+        </div>
+
+        <!-- 難易度リスト -->
+        <div class="diff-selection">
+
+          <!-- 初級 -->
+          <div class="diff-row">
+            <button class="diff-obj-btn" id="card-easy" aria-label="初級をはじめる">
+              <span class="diff-obj-title">初級</span>
+              <span class="diff-obj-sub">EASY</span>
+              <span class="diff-obj-arrow">▶</span>
+            </button>
+            <div class="diff-obj-progress">
+              <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-easy"></div></div>
+              <span class="diff-obj-text" id="progress-text-easy">0/50</span>
+            </div>
+          </div>
+
+          <!-- 中級 -->
+          <div class="diff-row">
+            <button class="diff-obj-btn" id="card-medium" aria-label="中級をはじめる">
+              <span class="diff-obj-title">中級</span>
+              <span class="diff-obj-sub">NORMAL</span>
+              <span class="diff-obj-arrow">▶</span>
+            </button>
+            <div class="diff-obj-progress">
+              <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-medium"></div></div>
+              <span class="diff-obj-text" id="progress-text-medium">0/50</span>
+            </div>
+          </div>
+
+          <!-- 上級 -->
+          <div class="diff-row">
+            <button class="diff-obj-btn" id="card-hard" aria-label="上級をはじめる">
+              <span class="diff-obj-title">上級</span>
+              <span class="diff-obj-sub">HARD</span>
+              <span class="diff-obj-arrow">▶</span>
+            </button>
+            <div class="diff-obj-progress">
+              <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-hard"></div></div>
+              <span class="diff-obj-text" id="progress-text-hard">0/50</span>
+            </div>
+          </div>
+
+        </div><!-- /.diff-selection -->
+
+      </div><!-- /.home-content -->
+    </div><!-- /#home-screen -->
+
+
+    <!-- ============================================================
+         ゲーム画面
+    ============================================================ -->
+    <div id="game-screen" class="screen-hidden">
+      <div class="app">
+
+        <!-- ヘッダー -->
+        <header>
+          <button id="btn-home" aria-label="ホームへ戻る">🏠</button>
+          <h2 class="app-title">SUDOKU</h2>
+          <button id="btn-pause" aria-label="一時停止">⏸</button>
+        </header>
+
+        <!-- ステータスバー -->
+        <div class="status-bar" aria-label="ゲームステータス">
+          <div class="status-item">
+            <span class="status-label">タイム</span>
+            <span class="status-value" id="timer">00:00</span>
+          </div>
+          <div class="status-divider"></div>
+          <div class="status-item">
+            <span class="status-label">ステージ</span>
+            <span class="status-value" id="stage-display">1/50</span>
+          </div>
+          <div class="status-divider"></div>
+          <div class="status-item">
+            <span class="status-label">ヒント残り</span>
+            <span class="status-value" id="hints-used">3</span>
+          </div>
+        </div>
+
+        <!-- ボード -->
+        <div class="board-wrapper">
+          <div id="board" role="grid" aria-label="数独ボード"></div>
+        </div>
+
+        <!-- コントロールボタン -->
+        <div class="controls">
+          <button class="ctrl-btn" id="btn-undo" aria-label="一手戻る">
+            <span class="btn-icon">↩️</span>
+            <span>戻す</span>
+          </button>
+          <button class="ctrl-btn" id="btn-note" aria-label="メモモード切り替え">
+            <span class="btn-icon">✏️</span>
+            <span>メモ</span>
+          </button>
+          <button class="ctrl-btn" id="btn-erase" aria-label="消しゴム">
+            <span class="btn-icon">🧹</span>
+            <span>消す</span>
+          </button>
+          <button class="ctrl-btn" id="btn-hint" aria-label="ヒントを使う">
+            <span class="btn-icon">💡</span>
+            <span>ヒント</span>
+          </button>
+        </div>
+
+        <!-- ナンバーパッド -->
+        <div id="numpad" aria-label="数字入力パッド"></div>
+
+      </div><!-- /.app -->
+    </div><!-- /#game-screen -->
+
+
+    <!-- 一時停止オーバーレイ -->
+    <div id="pause-overlay" role="dialog" aria-modal="true">
+      <div class="overlay-card">
+        <div class="overlay-title-text">⏸ 一時停止中</div>
+        <p class="overlay-msg-text">タップして再開</p>
+        <button class="overlay-btn" id="btn-resume">再開する</button>
+      </div>
+    </div>
+
+    <!-- 完成シート（底から滑り出す） -->
+    <div id="completion-sheet" aria-live="polite">
+      <div class="completion-handle"></div>
+      <div class="completion-emoji" id="completion-emoji">🎉</div>
+      <h2 id="completion-title">クリア！</h2>
+      <p id="completion-funny" class="completion-funny"></p>
+      <p id="completion-detail" class="completion-detail-text"></p>
+      <div class="completion-actions">
+        <button class="overlay-btn" id="btn-next-stage">次のステージへ →</button>
+        <button class="overlay-btn secondary" id="btn-go-home">🏠 ホームへ戻る</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/ui.js"></script>
+  </body>
+</html>
