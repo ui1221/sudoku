@@ -435,7 +435,7 @@ header {
 
 .cell-number {
   font-family: 'Outfit', sans-serif;
-  font-size: clamp(0.9rem, 4vw, 1.5rem);
+  font-size: clamp(1.2rem, 5vw, 1.9rem);
   font-weight: 700;
   line-height: 1;
   color: var(--cell-fixed);
@@ -511,7 +511,7 @@ header {
 /* ============================
    ナンバーパッド
 ============================== */
-#numpad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
+#numpad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
 
 .num-btn {
   aspect-ratio: 1 / 1;
@@ -520,8 +520,8 @@ header {
   background: var(--btn-bg);
   color: var(--text-primary);
   font-family: 'Outfit', sans-serif;
-  font-size: clamp(1rem, 4.5vw, 1.4rem);
-  font-weight: 700;
+  font-size: clamp(1.3rem, 6vw, 1.8rem);
+  font-weight: 800;
   cursor: pointer;
   transition: all var(--transition);
   box-shadow: var(--shadow-sm);
@@ -722,7 +722,7 @@ header {
   .status-value  { font-size: 0.95rem; }
   .ctrl-btn      { padding: 7px 4px; }
   .btn-icon      { font-size: 1.1rem; }
-  #numpad        { gap: 4px; }
+  #numpad        { gap: 2px; }
 }
 
 /* ============================
