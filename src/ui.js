@@ -10,15 +10,9 @@ const FUNNY_MESSAGES = [
   'よっ、大統領！',
   '天才か！？',
   'もしかして人工知能ですか？',
-  'カンニングじゃないよね？',
-  '脳みそ大丈夫ですか？（褒めてます）',
   '師匠と呼ばせてください。',
-  '解くの速すぎて問題が泣いてます。',
-  '完璧すぎて引く！（最大級の褒め言葉）',
   'IQ、高すぎでは？',
-  '世界記録更新のお知らせ（嘘）',
   '数独の神に選ばれし者よ…！',
-  'あなた、本当に人間ですか？',
   'さすがです！（土下座）',
   'ブラボー！！！（三回言いたい）',
   'やったじゃないですか〜！',
@@ -31,16 +25,10 @@ const FUNNY_MESSAGES = [
   '脱帽！！帽子が吹っ飛んだ！！',
   '速い！速すぎる！光より速い！（比喩）',
   'この才能、もったいない！',
-  '数独マシーン、降臨。',
-  '凡人の私には理解できません（褒めてます）。',
-  '問題「もう無理……」（問題の気持ち）',
   '頭がいいって、こういうことか！',
-  '解けちゃった！どうして！？',
-  'すごい！すごすぎる！すごすぎてごめん！',
-  '次は上級にチャレンジしてみては？（煽り）',
+  'すごい！すごすぎる！',
   '伝説の始まりだ……。',
   'どこかで見たことがある！──そう、天才だ！',
-  'このゲーム、あなたには簡単すぎたかな？',
   'もう弟子入りさせてください。よろしくお願いします。',
 ];
 
@@ -73,6 +61,10 @@ const homeBtn         = document.getElementById('btn-home');
 // オーバーレイ
 const pauseOverlayEl  = document.getElementById('pause-overlay');
 const btnResume       = document.getElementById('btn-resume');
+const btnResetStage   = document.getElementById('btn-reset-stage');
+const confirmOverlay  = document.getElementById('confirm-overlay');
+const btnConfirmYes   = document.getElementById('btn-confirm-yes');
+const btnConfirmNo    = document.getElementById('btn-confirm-no');
 const completionSheet = document.getElementById('completion-sheet');
 const completionEmoji = document.getElementById('completion-emoji');
 const completionTitle = document.getElementById('completion-title');
@@ -126,6 +118,7 @@ function init() {
 
 // ====== 盤面DOM生成（初回のみ） ======
 function buildBoard() {
+  initTheme(); // 初期化時にテーマを復元
   boardEl.innerHTML = '';
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -291,6 +284,27 @@ function setupControls() {
   pauseOverlayEl.addEventListener('click', (e) => {
     if (e.target === pauseOverlayEl) game.togglePause();
   });
+  
+  // やり直し関係
+  btnResetStage.addEventListener('click', () => {
+    pauseOverlayEl.classList.remove('visible');
+    confirmOverlay.classList.add('visible');
+  });
+  
+  btnConfirmNo.addEventListener('click', () => {
+    confirmOverlay.classList.remove('visible');
+    pauseOverlayEl.classList.add('visible');
+  });
+  
+  btnConfirmYes.addEventListener('click', () => {
+    confirmOverlay.classList.remove('visible');
+    game.togglePause(); // 一時停止を解除
+    game.start(currentDifficulty); // 同じ難易度で再スタート（ステージ番号はそのままなので同じ問題のリセットになる）
+  });
+
+  // テーマ切り替え
+  document.querySelector('.home-hero-text').addEventListener('click', toggleTheme);
+  document.querySelector('.app-title').addEventListener('click', toggleTheme);
 
   // 完成シート
   btnNextStage.addEventListener('click', () => {
@@ -337,6 +351,33 @@ document.addEventListener('keydown', (e) => {
   if (key === 'n' || key === 'N')                        { game.toggleNoteMode(); return; }
   if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === 'z') { e.preventDefault(); game.undo(); }
 });
+
+// ====== テーマ（ライト/ダーク）切り替え ======
+function initTheme() {
+  const saved = localStorage.getItem('sudoku_theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeMeta(saved);
+  }
+}
+
+function toggleTheme() {
+  let current = document.documentElement.getAttribute('data-theme');
+  if (!current) {
+    current = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sudoku_theme', next);
+  updateThemeMeta(next);
+}
+
+function updateThemeMeta(theme) {
+  const meta = document.getElementById('meta-theme-color');
+  if (meta) {
+    meta.setAttribute('content', theme === 'dark' ? '#0f0e1a' : '#f0f4ff');
+  }
+}
 
 // ====== リップルエフェクト ======
 function triggerRipple(el) {

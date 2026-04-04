@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0f4ff" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0e1a" />
+    <meta name="theme-color" id="meta-theme-color" content="#f0f4ff" />
     <meta name="description" content="スマホで遊べる高品質な数独。難易度3段階・ステージ制・メモ・ヒント付き。" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -145,6 +144,19 @@
         <div class="overlay-title-text">⏸ 一時停止中</div>
         <p class="overlay-msg-text">タップして再開</p>
         <button class="overlay-btn" id="btn-resume">再開する</button>
+        <div style="margin-top: 8px; width: 100%;">
+          <button class="overlay-btn secondary" id="btn-reset-stage">🔄 問題をやり直す</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 確認ダイアログオーバーレイ -->
+    <div id="confirm-overlay" role="dialog" aria-modal="true">
+      <div class="overlay-card">
+        <div class="overlay-title-text">⚠️ 確認</div>
+        <p class="overlay-msg-text" style="margin-bottom: 8px;">これまでの入力やメモはすべて消え、最初からになります。本当によろしいですか？</p>
+        <button class="overlay-btn" id="btn-confirm-yes">はい、やり直す</button>
+        <button class="overlay-btn secondary" id="btn-confirm-no" style="margin-top: 8px;">いいえ</button>
       </div>
     </div>
 

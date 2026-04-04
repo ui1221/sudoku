@@ -93,10 +93,10 @@ function countSolutions(board, limit = 2) {
 }
 
 // ====== 穴開け処理（唯一解を保証しながら数字を削除） ======
-const DIFFICULTY_CLUES = {
-  easy:   36,
-  medium: 30,
-  hard:   24,
+const DIFFICULTY_CLUE_RANGES = {
+  easy:   { min: 40, max: 44 },
+  medium: { min: 34, max: 38 },
+  hard:   { min: 28, max: 32 },
 };
 
 function digHoles(filledBoard, targetClues, rng) {
@@ -140,7 +140,11 @@ export function generatePuzzleForStage(difficulty, stage) {
   fillBoard(filled, rng);
   const solution = cloneBoard(filled);
 
-  const targetClues = DIFFICULTY_CLUES[difficulty] ?? DIFFICULTY_CLUES.medium;
+  const range = DIFFICULTY_CLUE_RANGES[difficulty] ?? DIFFICULTY_CLUE_RANGES.medium;
+  // minからmaxまでの間の数値を一様乱数（シード依存）で決定
+  const diffSpan = range.max - range.min;
+  const targetClues = range.min + Math.floor(rng() * (diffSpan + 1));
+  
   const puzzle = digHoles(filled, targetClues, rng);
 
   return { puzzle, solution };
