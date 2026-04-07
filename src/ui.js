@@ -54,9 +54,9 @@ function getRandomEmoji() {
 // import.meta.env.BASE_URL を使ってViteのbase設定（/sudoku/）に対応
 const BASE = import.meta.env.BASE_URL; // 例: '/sudoku/'
 const DIFF_IMAGES = {
-  easy:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/easy_${n}.png`),
-  medium: [1, 2, 3, 4, 5].map(n => `${BASE}stages/medium_${n}.png`),
-  hard:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/hard_${n}.png`),
+  easy:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/easy_${n}.webp`),
+  medium: [1, 2, 3, 4, 5].map(n => `${BASE}stages/medium_${n}.webp`),
+  hard:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/hard_${n}.webp`),
 };
 
 const DIFF_LABEL = { easy: '初級', medium: '中級', hard: '上級' };
