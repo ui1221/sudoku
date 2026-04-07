@@ -3,7 +3,16 @@
  */
 
 import './style.css';
-import { Game, MAX_STAGES, getCurrentStage, resetStageProgress } from './game.js';
+import {
+  Game,
+  MAX_STAGES,
+  STAGES_PER_SET,
+  NUM_SETS,
+  isStageCleared,
+  isStageHintCleared,
+  getClearedCount,
+  getProgressData,
+} from './game.js';
 
 // ====== クリア時のメッセージ（ランダム選択） ======
 const FUNNY_MESSAGES = [
@@ -37,15 +46,30 @@ const CLEAR_EMOJIS = ['🎉', '🏆', '✨', '🌟', '🎊', '🥇', '👑', '�
 function getRandomFunnyMessage() {
   return FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
 }
-
 function getRandomEmoji() {
   return CLEAR_EMOJIS[Math.floor(Math.random() * CLEAR_EMOJIS.length)];
 }
 
+// ====== 難易度ごとの画像定義 ======
+// import.meta.env.BASE_URL を使ってViteのbase設定（/sudoku/）に対応
+const BASE = import.meta.env.BASE_URL; // 例: '/sudoku/'
+const DIFF_IMAGES = {
+  easy:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/easy_${n}.png`),
+  medium: [1, 2, 3, 4, 5].map(n => `${BASE}stages/medium_${n}.png`),
+  hard:   [1, 2, 3, 4, 5].map(n => `${BASE}stages/hard_${n}.png`),
+};
+
+const DIFF_LABEL = { easy: '初級', medium: '中級', hard: '上級' };
+
 // ====== DOM 要素 ======
 // 画面
 const homeScreen      = document.getElementById('home-screen');
+const stageScreen     = document.getElementById('stage-screen');
 const gameScreen      = document.getElementById('game-screen');
+// ステージ選択
+const stageScreenTitle = document.getElementById('stage-screen-title');
+const gallerySets     = document.getElementById('gallery-sets');
+const btnStageBack    = document.getElementById('btn-stage-back');
 // ゲーム内
 const boardEl         = document.getElementById('board');
 const timerEl         = document.getElementById('timer');
@@ -62,6 +86,7 @@ const homeBtn         = document.getElementById('btn-home');
 const pauseOverlayEl  = document.getElementById('pause-overlay');
 const btnResume       = document.getElementById('btn-resume');
 const btnResetStage   = document.getElementById('btn-reset-stage');
+const btnGotoStageSelect = document.getElementById('btn-goto-stage-select');
 const confirmOverlay  = document.getElementById('confirm-overlay');
 const btnConfirmYes   = document.getElementById('btn-confirm-yes');
 const btnConfirmNo    = document.getElementById('btn-confirm-no');
@@ -71,6 +96,7 @@ const completionTitle = document.getElementById('completion-title');
 const completionFunny = document.getElementById('completion-funny');
 const completionDetail= document.getElementById('completion-detail');
 const btnNextStage    = document.getElementById('btn-next-stage');
+const btnGoStageSelect = document.getElementById('btn-go-stage-select');
 const btnGoHome       = document.getElementById('btn-go-home');
 
 // ====== ゲームインスタンス ======
@@ -81,6 +107,18 @@ let currentDifficulty = 'medium';
 function showHomeScreen() {
   updateHomeProgress();
   homeScreen.classList.remove('screen-hidden');
+  stageScreen.classList.add('screen-hidden');
+  gameScreen.classList.add('screen-hidden');
+  completionSheet.classList.remove('visible');
+  pauseOverlayEl.classList.remove('visible');
+}
+
+function showStageScreen(difficulty) {
+  currentDifficulty = difficulty;
+  stageScreenTitle.textContent = `${DIFF_LABEL[difficulty]} — ステージ選択`;
+  renderGallery(difficulty);
+  homeScreen.classList.add('screen-hidden');
+  stageScreen.classList.remove('screen-hidden');
   gameScreen.classList.add('screen-hidden');
   completionSheet.classList.remove('visible');
   pauseOverlayEl.classList.remove('visible');
@@ -88,13 +126,120 @@ function showHomeScreen() {
 
 function showGameScreen() {
   homeScreen.classList.add('screen-hidden');
+  stageScreen.classList.add('screen-hidden');
   gameScreen.classList.remove('screen-hidden');
+}
+
+// ====== ギャラリー画面を描画 ======
+function renderGallery(difficulty) {
+  gallerySets.innerHTML = '';
+  const images = DIFF_IMAGES[difficulty];
+  const progressData = getProgressData(difficulty);
+
+  for (let setIdx = 0; setIdx < NUM_SETS; setIdx++) {
+    const setStartStage = setIdx * STAGES_PER_SET + 1; // 1始まり
+    const imgUrl = images[setIdx];
+
+    // セット全体がクリア済みか？
+    let setAllCleared = true;
+    for (let pos = 0; pos < STAGES_PER_SET; pos++) {
+      const stage = setStartStage + pos;
+      if (!isStageCleared(difficulty, stage)) { setAllCleared = false; break; }
+    }
+
+    const setEl = document.createElement('div');
+    setEl.className = 'gallery-set';
+
+    // セットラベル
+    const labelEl = document.createElement('div');
+    labelEl.className = 'gallery-set-label';
+    labelEl.textContent = `SET ${setIdx + 1}`;
+    setEl.appendChild(labelEl);
+
+    // アートパネル（3x3グリッド）
+    const panelEl = document.createElement('div');
+    panelEl.className = 'art-panel';
+
+    for (let pos = 0; pos < STAGES_PER_SET; pos++) {
+      const stage = setStartStage + pos;
+      const cleared = isStageCleared(difficulty, stage);
+      const usedHint = isStageHintCleared(difficulty, stage);
+
+      // グリッド内の行・列（0始まり）
+      const gridRow = Math.floor(pos / 3); // 0,1,2
+      const gridCol = pos % 3;             // 0,1,2
+      // background-positionはパーセント: 0%,50%,100%
+      const bgPosX = gridCol === 0 ? '0%' : gridCol === 1 ? '50%' : '100%';
+      const bgPosY = gridRow === 0 ? '0%' : gridRow === 1 ? '50%' : '100%';
+
+      const pieceEl = document.createElement('div');
+      pieceEl.className = 'stage-piece';
+      pieceEl.setAttribute('role', 'button');
+      pieceEl.setAttribute('aria-label', `ステージ ${stage}`);
+      pieceEl.dataset.stage = stage;
+      pieceEl.dataset.difficulty = difficulty;
+
+      // 画像レイヤー
+      const imgEl = document.createElement('div');
+      imgEl.className = `stage-piece-img ${cleared ? 'cleared' : 'uncleared'}`;
+      imgEl.style.backgroundImage = `url('${imgUrl}')`;
+      imgEl.style.backgroundPosition = `${bgPosX} ${bgPosY}`;
+      pieceEl.appendChild(imgEl);
+
+      // テキストオーバーレイ
+      const overlayEl = document.createElement('div');
+      overlayEl.className = 'stage-piece-overlay';
+
+      const numBadge = document.createElement('div');
+      numBadge.className = 'stage-number-badge';
+      numBadge.textContent = stage;
+      overlayEl.appendChild(numBadge);
+
+      if (cleared) {
+        const clearIcon = document.createElement('div');
+        clearIcon.className = 'stage-clear-icon';
+        clearIcon.textContent = '✅';
+        overlayEl.appendChild(clearIcon);
+      }
+      pieceEl.appendChild(overlayEl);
+
+      // ヒント使用バッジ
+      if (cleared && usedHint) {
+        const hintBadgeEl = document.createElement('div');
+        hintBadgeEl.className = 'hint-badge';
+        hintBadgeEl.textContent = '💡';
+        hintBadgeEl.title = 'ヒントを使用してクリア';
+        pieceEl.appendChild(hintBadgeEl);
+      }
+
+      // クリックでゲーム開始
+      pieceEl.addEventListener('click', () => {
+        triggerRipple(pieceEl);
+        game.start(difficulty, stage);
+        showGameScreen();
+      });
+
+      panelEl.appendChild(pieceEl);
+    }
+
+    setEl.appendChild(panelEl);
+
+    // 全クリアバナー
+    if (setAllCleared) {
+      const bannerEl = document.createElement('div');
+      bannerEl.className = 'set-complete-banner';
+      bannerEl.textContent = '🎊 このセット完成！';
+      setEl.appendChild(bannerEl);
+    }
+
+    gallerySets.appendChild(setEl);
+  }
 }
 
 // ====== ホーム画面の進捗更新 ======
 function updateHomeProgress() {
   ['easy', 'medium', 'hard'].forEach((diff) => {
-    const cleared = Math.max(0, getCurrentStage(diff) - 1);
+    const cleared = getClearedCount(diff);
     const pct     = Math.min((cleared / MAX_STAGES) * 100, 100);
 
     const barEl  = document.getElementById(`progress-bar-${diff}`);
@@ -231,26 +376,42 @@ function render(state) {
   } else if (state.completed) {
     pauseOverlayEl.classList.remove('visible');
 
-    const diffLabel = { easy: '初級', medium: '中級', hard: '上級' }[state.difficulty];
+    const diffLabel = DIFF_LABEL[state.difficulty];
     const timeStr   = game.formatTime(state.elapsed);
-    const nextStage = state.stage + 1;
+    const usedHint  = state.hintsUsed > 0;
 
     completionEmoji.textContent  = getRandomEmoji();
     completionTitle.textContent  = 'クリア！';
     completionFunny.textContent  = getRandomFunnyMessage();
-    completionDetail.textContent = `${diffLabel} ステージ${state.stage}　／　タイム: ${timeStr}`;
+    completionDetail.textContent = `${diffLabel} ステージ${state.stage}　／　タイム: ${timeStr}${usedHint ? '　💡ヒント使用' : ''}`;
 
-    if (nextStage > MAX_STAGES) {
-      btnNextStage.textContent = '🏆 全クリア！もう一周する';
+    // 次のステージを探す（未クリアの最小番号）
+    const nextStage = findNextUnclearedStage(state.difficulty, state.stage);
+    if (nextStage === null) {
+      btnNextStage.textContent = '🏆 全クリア！続けて遊ぶ';
     } else {
       btnNextStage.textContent = `ステージ ${nextStage} へ →`;
     }
+    btnNextStage.dataset.nextStage = nextStage ?? 1;
 
     completionSheet.classList.add('visible');
   } else {
     pauseOverlayEl.classList.remove('visible');
     completionSheet.classList.remove('visible');
   }
+}
+
+/** 指定難易度で最も若い番号の未クリアステージを返す（全クリアなら null） */
+function findNextUnclearedStage(difficulty, currentStage) {
+  // まず次のステージ以降から探す
+  for (let s = currentStage + 1; s <= MAX_STAGES; s++) {
+    if (!isStageCleared(difficulty, s)) return s;
+  }
+  // 見つからなければ最初から探す
+  for (let s = 1; s < currentStage; s++) {
+    if (!isStageCleared(difficulty, s)) return s;
+  }
+  return null; // 全クリア
 }
 
 // ====== ナンバーパッド生成 ======
@@ -279,27 +440,35 @@ function setupControls() {
   pauseBtn.addEventListener('click',    () => game.togglePause());
   homeBtn.addEventListener('click',     () => showHomeScreen());
 
+  // ステージ選択ヘッダーの戻るボタン
+  btnStageBack.addEventListener('click', () => showHomeScreen());
+
   // 一時停止オーバーレイ
   btnResume.addEventListener('click', () => game.togglePause());
   pauseOverlayEl.addEventListener('click', (e) => {
     if (e.target === pauseOverlayEl) game.togglePause();
   });
-  
+
   // やり直し関係
   btnResetStage.addEventListener('click', () => {
     pauseOverlayEl.classList.remove('visible');
     confirmOverlay.classList.add('visible');
   });
-  
   btnConfirmNo.addEventListener('click', () => {
     confirmOverlay.classList.remove('visible');
     pauseOverlayEl.classList.add('visible');
   });
-  
   btnConfirmYes.addEventListener('click', () => {
     confirmOverlay.classList.remove('visible');
-    game.togglePause(); // 一時停止を解除
-    game.start(currentDifficulty); // 同じ難易度で再スタート（ステージ番号はそのままなので同じ問題のリセットになる）
+    game.togglePause();
+    game.start(currentDifficulty, game.state?.stage); // 同じステージをリセット
+  });
+
+  // 一時停止メニューからステージ選択へ
+  btnGotoStageSelect.addEventListener('click', () => {
+    pauseOverlayEl.classList.remove('visible');
+    game.togglePause(); // 一時停止解除（タイマー停止のまま保存）
+    showStageScreen(currentDifficulty);
   });
 
   // テーマ切り替え
@@ -309,28 +478,28 @@ function setupControls() {
   // 完成シート
   btnNextStage.addEventListener('click', () => {
     completionSheet.classList.remove('visible');
-    game.start(currentDifficulty);
+    const nextStage = parseInt(btnNextStage.dataset.nextStage) || 1;
+    game.start(currentDifficulty, nextStage);
+    showGameScreen();
+  });
+  btnGoStageSelect.addEventListener('click', () => {
+    completionSheet.classList.remove('visible');
+    showStageScreen(currentDifficulty);
   });
   btnGoHome.addEventListener('click', () => showHomeScreen());
 
-  // ホーム画面の難易度カード（ボタン化）
+  // ホーム画面の難易度カード → ステージ選択画面へ
   ['easy', 'medium', 'hard'].forEach((diff) => {
     document.getElementById(`card-${diff}`)?.addEventListener('click', () => {
-      currentDifficulty = diff;
       triggerRipple(document.getElementById(`card-${diff}`));
-      // 同じ難易度のセーブがあれば続きから、なければ新規開始
-      const hasSave = game.load();
-      if (!hasSave || game.state?.difficulty !== diff) {
-        game.start(diff);
-      }
-      showGameScreen();
+      showStageScreen(diff);
     });
   });
 }
 
 // ====== キーボード操作（PC対応） ======
 document.addEventListener('keydown', (e) => {
-  if (!game.state || homeScreen.offsetParent !== null) return; // ホーム画面中は無視
+  if (!game.state || gameScreen.classList.contains('screen-hidden')) return;
 
   const key = e.key;
   if (/^[1-9]$/.test(key)) { game.inputNumber(parseInt(key)); return; }

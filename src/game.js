@@ -8,36 +8,87 @@ import { generatePuzzleForStage, checkInput, isBoardComplete, getHint, cloneBoar
 const SAVE_KEY     = 'sudoku_game_state';
 const PROGRESS_KEY = 'sudoku_stage_progress';
 const MAX_HINTS    = 3;
-export const MAX_STAGES = 50;
+export const MAX_STAGES = 45; // 9問 × 5セット = 45ステージ
+export const STAGES_PER_SET = 9; // 1セット（1枚の絵）あたりのステージ数
+export const NUM_SETS = 5; // 難易度ごとのセット数
 
 // ====== ステージ進捗管理 ======
+// 進捗データ構造: { easy: { "1": { cleared: true, usedHint: false }, ... }, ... }
+
 function getProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); }
-  catch { return {}; }
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // 後方互換: 旧データ（{ easy: 5 } のような数値）を新形式に移行
+    return migrateProgress(parsed);
+  } catch {
+    return {};
+  }
 }
+
+/** 旧データ形式を新形式に自動移行 */
+function migrateProgress(old) {
+  const result = {};
+  for (const diff of ['easy', 'medium', 'hard']) {
+    const v = old[diff];
+    if (v === undefined || v === null) {
+      result[diff] = {};
+    } else if (typeof v === 'number') {
+      // 旧形式: 現在ステージ番号 → 1〜(v-1)がクリア済み扱いに移行
+      result[diff] = {};
+      for (let i = 1; i < v; i++) {
+        result[diff][String(i)] = { cleared: true, usedHint: false };
+      }
+    } else if (typeof v === 'object' && !Array.isArray(v)) {
+      result[diff] = v;
+    } else {
+      result[diff] = {};
+    }
+  }
+  return result;
+}
+
 function saveProgress(p) {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
 
-/** 現在のステージ番号（1始まり）を返す */
-export function getCurrentStage(difficulty) {
-  return getProgress()[difficulty] ?? 1;
+/** ステージがクリア済みかどうか */
+export function isStageCleared(difficulty, stage) {
+  const p = getProgress();
+  return !!(p[difficulty]?.[String(stage)]?.cleared);
 }
 
-/** クリア後に次のステージへ進める */
-export function advanceStage(difficulty) {
+/** ヒントを使用してクリアしたステージかどうか */
+export function isStageHintCleared(difficulty, stage) {
   const p = getProgress();
-  const next = Math.min((p[difficulty] ?? 1) + 1, MAX_STAGES);
-  p[difficulty] = next;
-  saveProgress(p);
-  return next;
+  return !!(p[difficulty]?.[String(stage)]?.usedHint);
 }
 
-/** 難易度の進捗をリセット（ステージ1に戻す） */
-export function resetStageProgress(difficulty) {
+/** ステージをクリア済みとしてマークする */
+export function markStageCleared(difficulty, stage, usedHint) {
   const p = getProgress();
-  p[difficulty] = 1;
+  if (!p[difficulty]) p[difficulty] = {};
+  // すでにヒントなしでクリア済みの場合は上書きしない（ヒントありに格下げしない）
+  const existing = p[difficulty][String(stage)];
+  if (existing?.cleared && !existing?.usedHint && usedHint) {
+    // 自力クリア済みをヒントクリアに格下げしない
+  } else {
+    p[difficulty][String(stage)] = { cleared: true, usedHint: !!usedHint };
+  }
   saveProgress(p);
+}
+
+/** 難易度全体のクリア状況を取得 */
+export function getProgressData(difficulty) {
+  const p = getProgress();
+  return p[difficulty] ?? {};
+}
+
+/** 難易度ごとのクリア済みステージ数 */
+export function getClearedCount(difficulty) {
+  const data = getProgressData(difficulty);
+  return Object.values(data).filter(v => v?.cleared).length;
 }
 
 // ====== Game クラス ======
@@ -50,11 +101,15 @@ export class Game {
   }
 
   // ====== ゲーム開始 ======
-  start(difficulty = 'medium') {
+  start(difficulty = 'medium', stage = null) {
     this._clearTimer();
     this._history = [];
 
-    const stage = getCurrentStage(difficulty);
+    // stageが指定されていない場合は、未クリアの最初のステージを探す
+    if (stage === null) {
+      stage = this._findNextStage(difficulty);
+    }
+
     const { puzzle, solution } = generatePuzzleForStage(difficulty, stage);
 
     const notes = Array.from({ length: 9 }, () =>
@@ -83,6 +138,14 @@ export class Game {
     this._startTimer();
     this._save();
     this.onUpdate(this.state);
+  }
+
+  /** 未クリアの最初のステージを探す（全クリア済みなら1に戻る） */
+  _findNextStage(difficulty) {
+    for (let s = 1; s <= MAX_STAGES; s++) {
+      if (!isStageCleared(difficulty, s)) return s;
+    }
+    return 1; // 全クリア時はステージ1から
   }
 
   // ====== セル選択 ======
@@ -133,7 +196,8 @@ export class Game {
       if (isBoardComplete(state.board, state.solution)) {
         this._clearTimer();
         state.completed = true;
-        advanceStage(state.difficulty);
+        const usedHint = state.hintsUsed > 0;
+        markStageCleared(state.difficulty, state.stage, usedHint);
       }
     }
 
@@ -199,7 +263,7 @@ export class Game {
     if (isBoardComplete(state.board, state.solution)) {
       this._clearTimer();
       state.completed = true;
-      advanceStage(state.difficulty);
+      markStageCleared(state.difficulty, state.stage, true); // ヒント使用
     }
 
     this._save();
@@ -225,8 +289,6 @@ export class Game {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const saved = JSON.parse(raw);
-      // 旧データにstageがない場合の後方互換
-      if (!saved.stage) saved.stage = getCurrentStage(saved.difficulty ?? 'medium');
       saved.notes = saved.notes.map((row) =>
         row.map((cellNotes) => new Set(cellNotes))
       );

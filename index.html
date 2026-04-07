@@ -39,7 +39,7 @@
             </button>
             <div class="diff-obj-progress">
               <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-easy"></div></div>
-              <span class="diff-obj-text" id="progress-text-easy">0/50</span>
+              <span class="diff-obj-text" id="progress-text-easy">0/45</span>
             </div>
           </div>
 
@@ -52,7 +52,7 @@
             </button>
             <div class="diff-obj-progress">
               <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-medium"></div></div>
-              <span class="diff-obj-text" id="progress-text-medium">0/50</span>
+              <span class="diff-obj-text" id="progress-text-medium">0/45</span>
             </div>
           </div>
 
@@ -65,7 +65,7 @@
             </button>
             <div class="diff-obj-progress">
               <div class="diff-obj-track"><div class="diff-obj-fill" id="progress-bar-hard"></div></div>
-              <span class="diff-obj-text" id="progress-text-hard">0/50</span>
+              <span class="diff-obj-text" id="progress-text-hard">0/45</span>
             </div>
           </div>
 
@@ -73,6 +73,28 @@
 
       </div><!-- /.home-content -->
     </div><!-- /#home-screen -->
+
+
+    <!-- ============================================================
+         ステージ選択画面
+    ============================================================ -->
+    <div id="stage-screen" class="screen-hidden">
+      <div class="stage-screen-inner">
+
+        <!-- ヘッダー -->
+        <div class="stage-header">
+          <button id="btn-stage-back" class="stage-back-btn" aria-label="ホームへ戻る">←</button>
+          <h2 class="stage-header-title" id="stage-screen-title">初級 — ステージ選択</h2>
+          <div style="width:40px;"></div><!-- バランス用 -->
+        </div>
+
+        <!-- ギャラリー（5セット × 3x3グリッド） -->
+        <div class="gallery-scroll">
+          <div id="gallery-sets" class="gallery-sets"></div>
+        </div>
+
+      </div>
+    </div><!-- /#stage-screen -->
 
 
     <!-- ============================================================
@@ -97,7 +119,7 @@
           <div class="status-divider"></div>
           <div class="status-item">
             <span class="status-label">ステージ</span>
-            <span class="status-value" id="stage-display">1/50</span>
+            <span class="status-value" id="stage-display">1/45</span>
           </div>
           <div class="status-divider"></div>
           <div class="status-item">
@@ -147,6 +169,9 @@
         <div style="margin-top: 8px; width: 100%;">
           <button class="overlay-btn secondary" id="btn-reset-stage">🔄 問題をやり直す</button>
         </div>
+        <div style="margin-top: 8px; width: 100%;">
+          <button class="overlay-btn secondary" id="btn-goto-stage-select">📋 ステージ選択へ</button>
+        </div>
       </div>
     </div>
 
@@ -169,6 +194,7 @@
       <p id="completion-detail" class="completion-detail-text"></p>
       <div class="completion-actions">
         <button class="overlay-btn" id="btn-next-stage">次のステージへ →</button>
+        <button class="overlay-btn secondary" id="btn-go-stage-select">📋 ステージ選択へ</button>
         <button class="overlay-btn secondary" id="btn-go-home">🏠 ホームへ戻る</button>
       </div>
     </div>
