@@ -91,6 +91,48 @@ export function getClearedCount(difficulty) {
   return Object.values(data).filter(v => v?.cleared).length;
 }
 
+// ====== セーブデータ（全ステージ）管理 ======
+function getSaveData() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return { lastPlayed: null, saves: {} };
+    const parsed = JSON.parse(raw);
+    
+    // 移行ロジック（旧単一セーブデータがあれば新形式に包む）
+    if (parsed.difficulty && parsed.stage && parsed.board) {
+      const key = `${parsed.difficulty}_${parsed.stage}`;
+      return {
+        lastPlayed: { difficulty: parsed.difficulty, stage: parsed.stage },
+        saves: { [key]: parsed }
+      };
+    }
+    return parsed.saves ? parsed : { lastPlayed: null, saves: {} };
+  } catch {
+    return { lastPlayed: null, saves: {} };
+  }
+}
+
+function persistSaveData(data) {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+}
+
+/** 途中のステージ一覧を配列で返す */
+export function getInProgressStages(difficulty) {
+  const data = getSaveData();
+  const stages = [];
+  for (const key in data.saves) {
+    if (key.startsWith(`${difficulty}_`)) {
+      stages.push(parseInt(key.split('_')[1], 10));
+    }
+  }
+  return stages;
+}
+
+/** 最後にプレイした難易度とステージを返す */
+export function getLastPlayed() {
+  return getSaveData().lastPlayed; // { difficulty, stage } or null
+}
+
 // ====== Game クラス ======
 export class Game {
   constructor(onUpdate) {
@@ -108,6 +150,14 @@ export class Game {
     // stageが指定されていない場合は、未クリアの最初のステージを探す
     if (stage === null) {
       stage = this._findNextStage(difficulty);
+    }
+
+    // 既存のセーブデータがあればロードして再開
+    const data = getSaveData();
+    const existing = data.saves[`${difficulty}_${stage}`];
+    if (existing) {
+      this._restoreState(existing);
+      return;
     }
 
     const { puzzle, solution } = generatePuzzleForStage(difficulty, stage);
@@ -198,6 +248,7 @@ export class Game {
         state.completed = true;
         const usedHint = state.hintsUsed > 0;
         markStageCleared(state.difficulty, state.stage, usedHint);
+        this._deleteCurrentSave();
       }
     }
 
@@ -264,6 +315,7 @@ export class Game {
       this._clearTimer();
       state.completed = true;
       markStageCleared(state.difficulty, state.stage, true); // ヒント使用
+      this._deleteCurrentSave();
     }
 
     this._save();
@@ -283,25 +335,32 @@ export class Game {
     this.onUpdate(this.state);
   }
 
-  // ====== セーブデータ読み込み ======
+  // ====== セーブデータ読み込み（最後にプレイしたステージを復元） ======
   load() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      const saved = JSON.parse(raw);
-      saved.notes = saved.notes.map((row) =>
-        row.map((cellNotes) => new Set(cellNotes))
-      );
-      this.state    = saved;
-      this._history = [];
-      if (!this.state.completed && !this.state.paused) {
-        this._startTimer();
-      }
-      this.onUpdate(this.state);
+      const data = getSaveData();
+      if (!data.lastPlayed) return false;
+      const { difficulty, stage } = data.lastPlayed;
+      const saved = data.saves[`${difficulty}_${stage}`];
+      if (!saved) return false;
+      
+      this._restoreState(saved);
       return true;
     } catch {
       return false;
     }
+  }
+
+  _restoreState(saved) {
+    saved.notes = saved.notes.map((row) =>
+      row.map((cellNotes) => new Set(cellNotes))
+    );
+    this.state    = saved;
+    this._history = [];
+    if (!this.state.completed && !this.state.paused) {
+      this._startTimer();
+    }
+    this.onUpdate(this.state);
   }
 
   // ====== ユーティリティ ======
@@ -358,11 +417,22 @@ export class Game {
   }
 
   _save() {
-    if (!this.state) return;
+    if (!this.state || this.state.completed) return;
     const toSave = {
       ...this.state,
       notes: this.state.notes.map((row) => row.map((s) => [...s])),
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(toSave));
+    
+    const data = getSaveData();
+    data.lastPlayed = { difficulty: this.state.difficulty, stage: this.state.stage };
+    data.saves[`${this.state.difficulty}_${this.state.stage}`] = toSave;
+    persistSaveData(data);
+  }
+
+  _deleteCurrentSave() {
+    if (!this.state) return;
+    const data = getSaveData();
+    delete data.saves[`${this.state.difficulty}_${this.state.stage}`];
+    persistSaveData(data);
   }
 }

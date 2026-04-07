@@ -12,6 +12,8 @@ import {
   isStageHintCleared,
   getClearedCount,
   getProgressData,
+  getInProgressStages,
+  getLastPlayed,
 } from './game.js';
 
 // ====== クリア時のメッセージ（ランダム選択） ======
@@ -136,6 +138,8 @@ function renderGallery(difficulty) {
   gallerySets.innerHTML = '';
   const images = DIFF_IMAGES[difficulty];
   const progressData = getProgressData(difficulty);
+  const inProgressStages = getInProgressStages(difficulty);
+  const lastPlayed = getLastPlayed();
 
   for (let setIdx = 0; setIdx < NUM_SETS; setIdx++) {
     const setStartStage = setIdx * STAGES_PER_SET + 1; // 1始まり
@@ -165,6 +169,8 @@ function renderGallery(difficulty) {
       const stage = setStartStage + pos;
       const cleared = isStageCleared(difficulty, stage);
       const usedHint = isStageHintCleared(difficulty, stage);
+      const inProgress = inProgressStages.includes(stage) && !cleared;
+      const isLastPlayed = lastPlayed && lastPlayed.difficulty === difficulty && lastPlayed.stage === stage;
 
       // グリッド内の行・列（0始まり）
       const gridRow = Math.floor(pos / 3); // 0,1,2
@@ -175,6 +181,8 @@ function renderGallery(difficulty) {
 
       const pieceEl = document.createElement('div');
       pieceEl.className = 'stage-piece';
+      if (isLastPlayed) pieceEl.classList.add('last-played');
+      if (inProgress) pieceEl.classList.add('in-progress');
       pieceEl.setAttribute('role', 'button');
       pieceEl.setAttribute('aria-label', `ステージ ${stage}`);
       pieceEl.dataset.stage = stage;
@@ -209,6 +217,14 @@ function renderGallery(difficulty) {
         pieceEl.appendChild(hintBadgeEl);
       }
 
+      // プレイ中バッジ
+      if (inProgress) {
+        const progressBadge = document.createElement('div');
+        progressBadge.className = 'in-progress-badge';
+        progressBadge.textContent = '⏳';
+        pieceEl.appendChild(progressBadge);
+      }
+
       // クリックでゲーム開始
       pieceEl.addEventListener('click', () => {
         triggerRipple(pieceEl);
@@ -217,6 +233,13 @@ function renderGallery(difficulty) {
       });
 
       panelEl.appendChild(pieceEl);
+
+      // 最後にプレイしたステージの場合は描画後に自動スクロール
+      if (isLastPlayed) {
+        setTimeout(() => {
+          pieceEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
     }
 
     setEl.appendChild(panelEl);
