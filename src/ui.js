@@ -111,6 +111,7 @@ function showHomeScreen() {
   gameScreen.classList.add('screen-hidden');
   completionSheet.classList.remove('visible');
   pauseOverlayEl.classList.remove('visible');
+  document.getElementById('full-image-overlay')?.classList.remove('visible');
 }
 
 function showStageScreen(difficulty) {
@@ -192,14 +193,10 @@ function renderGallery(difficulty) {
 
       const numBadge = document.createElement('div');
       numBadge.className = 'stage-number-badge';
-      numBadge.textContent = stage;
-      overlayEl.appendChild(numBadge);
-
-      if (cleared) {
-        const clearIcon = document.createElement('div');
-        clearIcon.className = 'stage-clear-icon';
-        clearIcon.textContent = '✅';
-        overlayEl.appendChild(clearIcon);
+      // クリア後は番号を非表示にする（要望により生の絵を見せるため）
+      if (!cleared) {
+        numBadge.textContent = stage;
+        overlayEl.appendChild(numBadge);
       }
       pieceEl.appendChild(overlayEl);
 
@@ -224,11 +221,17 @@ function renderGallery(difficulty) {
 
     setEl.appendChild(panelEl);
 
-    // 全クリアバナー
+    // 全クリアバナー（イラストを見るボタン）
     if (setAllCleared) {
       const bannerEl = document.createElement('div');
       bannerEl.className = 'set-complete-banner';
-      bannerEl.textContent = '🎊 このセット完成！';
+      bannerEl.textContent = '👁️ イラストを見る';
+      bannerEl.setAttribute('role', 'button');
+      bannerEl.addEventListener('click', () => {
+        triggerRipple(bannerEl);
+        document.getElementById('full-image-content').src = imgUrl;
+        document.getElementById('full-image-overlay').classList.add('visible');
+      });
       setEl.appendChild(bannerEl);
     }
 
@@ -460,8 +463,17 @@ function setupControls() {
   });
   btnConfirmYes.addEventListener('click', () => {
     confirmOverlay.classList.remove('visible');
-    game.togglePause();
+    game.togglePause(); // 一時停止解除（タイマー停止のまま保存）
     game.start(currentDifficulty, game.state?.stage); // 同じステージをリセット
+  });
+
+  // フルイメージオーバーレイ
+  const fullImageOverlay = document.getElementById('full-image-overlay');
+  document.getElementById('btn-close-full-image')?.addEventListener('click', () => {
+    fullImageOverlay.classList.remove('visible');
+  });
+  fullImageOverlay?.addEventListener('click', (e) => {
+    if (e.target === fullImageOverlay) fullImageOverlay.classList.remove('visible');
   });
 
   // 一時停止メニューからステージ選択へ
