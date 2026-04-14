@@ -108,19 +108,13 @@ let currentDifficulty = 'medium';
 // ====== BGM ======
 const bgm = new Audio(`${BASE}audio/bgm.ogg`);
 bgm.loop   = true;
-bgm.volume = 0.05; // 5%（かすかに聞こえる程度）
+bgm.volume = 0.10; // 10%（スマホのスピーカーでも聴こえる程度）
 
-let bgmStarted = false;
+// 再生中でなければ play() を試みる（失敗しても次の操作でリトライ可能）
 function startBgm() {
-  if (bgmStarted) return;
-  bgmStarted = true;
-  bgm.play().catch(() => {}); // 自動再生が失敗しても無視
+  if (!bgm.paused) return; // すでに再生中なら何もしない
+  bgm.play().catch(() => {}); // ブラウザに拒否されても無視（次の操作で再挑戦できる）
 }
-
-// 最初のユーザー操作で BGM を開始（ブラウザの自動再生制限に対応）
-['click', 'touchstart', 'keydown'].forEach(type => {
-  document.addEventListener(type, startBgm, { once: false, passive: true });
-});
 
 // ====== 音量スライダー ======
 const volumeSlider = document.getElementById('bgm-volume-slider');
@@ -141,6 +135,7 @@ volumeSlider.addEventListener('input', () => {
   bgm.volume = pct / 100;
   updateVolumeUI(pct);
   localStorage.setItem('sudoku_bgm_volume', pct); // ページ再訪時も維持
+  startBgm(); // スライダー操作もトリガーになる
 });
 
 // 保存済みの音量を復元
@@ -151,7 +146,8 @@ if (savedVol !== null) {
   volumeSlider.value = pct;
   updateVolumeUI(pct);
 } else {
-  updateVolumeUI(5); // 初期値 5% の表示を整える
+  volumeSlider.value = 10;
+  updateVolumeUI(10); // 初期値 10%
 }
 
 // ====== 画面切り替え ======
@@ -274,9 +270,10 @@ function renderGallery(difficulty) {
         pieceEl.appendChild(progressBadge);
       }
 
-      // クリックでゲーム開始
+      // クリックでゲーム開始（BGMのトリガーも兼ねる）
       pieceEl.addEventListener('click', () => {
         triggerRipple(pieceEl);
+        startBgm();
         game.start(difficulty, stage);
         showGameScreen();
       });
@@ -572,10 +569,11 @@ function setupControls() {
   });
   btnGoHome.addEventListener('click', () => showHomeScreen());
 
-  // ホーム画面の難易度カード → ステージ選択画面へ
+  // ホーム画面の難易度カード → ステージ選択画面へ（BGMのトリガーも兼ねる）
   ['easy', 'medium', 'hard'].forEach((diff) => {
     document.getElementById(`card-${diff}`)?.addEventListener('click', () => {
       triggerRipple(document.getElementById(`card-${diff}`));
+      startBgm();
       showStageScreen(diff);
     });
   });
