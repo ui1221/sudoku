@@ -642,6 +642,25 @@ function triggerRipple(el) {
 // ====== スタート ======
 init();
 
+// ====== バックグラウンド移行時の処理 ======
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // アプリが隠れたらBGMを停止
+    bgm.pause();
+    // ゲーム画面を開いていて、一時停止中でなければゲームも一時停止する
+    if (game.state && !game.state.paused && !game.state.completed && !gameScreen.classList.contains('screen-hidden')) {
+      game.togglePause();
+    }
+  } else {
+    // アプリに戻ってきたらBGMを再開 (設定音量が0より大きい場合)
+    const savedVol = localStorage.getItem('sudoku_bgm_volume');
+    const pct = savedVol !== null ? parseInt(savedVol, 10) : 10;
+    if (pct > 0) {
+      startBgm();
+    }
+  }
+});
+
 // Service Worker 登録
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
