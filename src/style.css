@@ -754,6 +754,60 @@ header {
 }
 
 /* ============================
+   音量コントロール
+============================== */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--border-radius-sm);
+}
+.volume-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.volume-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--btn-border);
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--accent-1);
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-1);
+  box-shadow: 0 2px 8px rgba(108,99,255,0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 14px rgba(108,99,255,0.6);
+}
+.volume-label {
+  font-family: 'Outfit', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  min-width: 2.8em;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ============================
    レスポンシブ（画面が低い端末）
 ============================== */
 @media (max-height: 740px) {

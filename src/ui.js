@@ -105,6 +105,55 @@ const btnGoHome       = document.getElementById('btn-go-home');
 const game = new Game(render);
 let currentDifficulty = 'medium';
 
+// ====== BGM ======
+const bgm = new Audio(`${BASE}audio/bgm.ogg`);
+bgm.loop   = true;
+bgm.volume = 0.05; // 5%（かすかに聞こえる程度）
+
+let bgmStarted = false;
+function startBgm() {
+  if (bgmStarted) return;
+  bgmStarted = true;
+  bgm.play().catch(() => {}); // 自動再生が失敗しても無視
+}
+
+// 最初のユーザー操作で BGM を開始（ブラウザの自動再生制限に対応）
+['click', 'touchstart', 'keydown'].forEach(type => {
+  document.addEventListener(type, startBgm, { once: false, passive: true });
+});
+
+// ====== 音量スライダー ======
+const volumeSlider = document.getElementById('bgm-volume-slider');
+const volumeLabel  = document.getElementById('volume-label');
+const volumeIcon   = document.getElementById('volume-icon');
+
+function updateVolumeUI(pct) {
+  volumeLabel.textContent = `${pct}%`;
+  volumeIcon.textContent  = pct === 0 ? '🔇' : '🎵';
+  // スライダーの塗り（filled track）をグラデーションで表現
+  const ratio = pct / 80;
+  volumeSlider.style.background =
+    `linear-gradient(to right, var(--accent-1) 0%, var(--accent-2) ${ratio * 100}%, var(--btn-border) ${ratio * 100}%)`;
+}
+
+volumeSlider.addEventListener('input', () => {
+  const pct = parseInt(volumeSlider.value, 10);
+  bgm.volume = pct / 100;
+  updateVolumeUI(pct);
+  localStorage.setItem('sudoku_bgm_volume', pct); // ページ再訪時も維持
+});
+
+// 保存済みの音量を復元
+const savedVol = localStorage.getItem('sudoku_bgm_volume');
+if (savedVol !== null) {
+  const pct = parseInt(savedVol, 10);
+  bgm.volume = pct / 100;
+  volumeSlider.value = pct;
+  updateVolumeUI(pct);
+} else {
+  updateVolumeUI(5); // 初期値 5% の表示を整える
+}
+
 // ====== 画面切り替え ======
 function showHomeScreen() {
   updateHomeProgress();
