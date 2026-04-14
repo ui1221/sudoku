@@ -199,7 +199,6 @@ body::after {
   font-size: clamp(1.4rem, 6vw, 1.8rem);
   letter-spacing: 0.1em;
   color: var(--text-primary);
-  text-transform: uppercase;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
