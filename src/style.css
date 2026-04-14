@@ -196,17 +196,18 @@ body::after {
 .home-hero-text {
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  font-size: 1.8rem;
-  letter-spacing: 0.25em;
+  font-size: clamp(1.4rem, 6vw, 1.8rem);
+  letter-spacing: 0.1em;
   color: var(--text-primary);
   text-transform: uppercase;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-left: 0.25em; /* レタースペーシングの調整 */
+  margin-left: 0.1em;
   cursor: pointer;
   user-select: none;
+  text-align: center;
 }
 
 /* 難易度リスト */
@@ -352,15 +353,17 @@ header {
 
 .app-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.4rem;
+  font-size: clamp(1rem, 4.5vw, 1.4rem);
   font-weight: 800;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   cursor: pointer;
   user-select: none;
+  text-align: center;
+  flex: 1;
 }
 
 #btn-home, #btn-pause {
