@@ -101,6 +101,7 @@ const completionDetail= document.getElementById('completion-detail');
 const btnNextStage    = document.getElementById('btn-next-stage');
 const btnGoStageSelect = document.getElementById('btn-go-stage-select');
 const btnGoHome       = document.getElementById('btn-go-home');
+const btnRandomStage  = document.getElementById('btn-random-stage');
 
 // ====== ゲームインスタンス ======
 const game = new Game(render);
@@ -622,6 +623,15 @@ function setupControls() {
       startBgm();
       showStageScreen(diff);
     });
+  });
+
+  // ランダムに遊ぶ
+  btnRandomStage?.addEventListener('click', () => {
+    triggerRipple(btnRandomStage);
+    startBgm();
+    const randomStage = Math.floor(Math.random() * MAX_STAGES) + 1;
+    game.start(currentDifficulty, randomStage);
+    showGameScreen();
   });
 }
 
