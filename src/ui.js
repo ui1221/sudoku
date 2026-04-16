@@ -84,6 +84,7 @@ const hintBtn         = document.getElementById('btn-hint');
 const undoBtn         = document.getElementById('btn-undo');
 const pauseBtn        = document.getElementById('btn-pause');
 const homeBtn         = document.getElementById('btn-home');
+const muteToggleBtn   = document.getElementById('btn-mute-toggle');
 // オーバーレイ
 const pauseOverlayEl  = document.getElementById('pause-overlay');
 const btnResume       = document.getElementById('btn-resume');
@@ -108,12 +109,49 @@ let currentDifficulty = 'medium';
 // ====== BGM ======
 const bgm = new Audio(`${BASE}audio/bgm.ogg`);
 bgm.loop   = true;
-bgm.volume = 0.10; // 10%（スマホのスピーカーでも聴こえる程度）
+// bgm.volume の制約を回避するため、Web Audio API で音量制御を行う
+let audioCtx;
+let sourceNode;
+let gainNode;
+let isMuted = false;
+let currentVolumeValue = 10; // 初期値 10%
+
+function initAudio() {
+  if (audioCtx) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AudioContext();
+  gainNode = audioCtx.createGain();
+
+  const savedVol = localStorage.getItem('sudoku_bgm_volume');
+  if (savedVol !== null) {
+    currentVolumeValue = parseInt(savedVol, 10);
+  }
+  gainNode.gain.value = isMuted ? 0 : currentVolumeValue / 100;
+
+  sourceNode = audioCtx.createMediaElementSource(bgm);
+  sourceNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  
+  updateVolumeUI(currentVolumeValue);
+}
 
 // 再生中でなければ play() を試みる（失敗しても次の操作でリトライ可能）
 function startBgm() {
+  initAudio();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   if (!bgm.paused) return; // すでに再生中なら何もしない
   bgm.play().catch(() => {}); // ブラウザに拒否されても無視（次の操作で再挑戦できる）
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  if (gainNode) {
+    gainNode.gain.value = isMuted ? 0 : currentVolumeValue / 100;
+  }
+  updateVolumeUI(currentVolumeValue);
+  if (!isMuted) startBgm();
 }
 
 // ====== 音量スライダー ======
@@ -123,7 +161,10 @@ const volumeIcon   = document.getElementById('volume-icon');
 
 function updateVolumeUI(pct) {
   volumeLabel.textContent = `${pct}%`;
-  volumeIcon.textContent  = pct === 0 ? '🔇' : '🎵';
+  volumeIcon.textContent  = pct === 0 || isMuted ? '🔇' : '🎵';
+  if (muteToggleBtn) {
+    muteToggleBtn.textContent = pct === 0 || isMuted ? '🔇' : '🔊';
+  }
   // スライダーの塗り（filled track）をグラデーションで表現
   const ratio = pct / 80;
   volumeSlider.style.background =
@@ -132,20 +173,24 @@ function updateVolumeUI(pct) {
 
 volumeSlider.addEventListener('input', () => {
   const pct = parseInt(volumeSlider.value, 10);
-  bgm.volume = pct / 100;
+  currentVolumeValue = pct;
+  if (isMuted && pct > 0) isMuted = false;
+  if (gainNode) gainNode.gain.value = pct / 100;
+  
   updateVolumeUI(pct);
   localStorage.setItem('sudoku_bgm_volume', pct); // ページ再訪時も維持
   startBgm(); // スライダー操作もトリガーになる
 });
 
-// 保存済みの音量を復元
+// 保存済みの音量をUIに復元
 const savedVol = localStorage.getItem('sudoku_bgm_volume');
 if (savedVol !== null) {
   const pct = parseInt(savedVol, 10);
-  bgm.volume = pct / 100;
+  currentVolumeValue = pct;
   volumeSlider.value = pct;
   updateVolumeUI(pct);
 } else {
+  currentVolumeValue = 10;
   volumeSlider.value = 10;
   updateVolumeUI(10); // 初期値 10%
 }
@@ -511,6 +556,7 @@ function setupControls() {
   undoBtn.addEventListener('click',     () => { game.undo();           triggerRipple(undoBtn); });
   pauseBtn.addEventListener('click',    () => game.togglePause());
   homeBtn.addEventListener('click',     () => showHomeScreen());
+  muteToggleBtn?.addEventListener('click', () => { toggleMute(); triggerRipple(muteToggleBtn); });
 
   // ステージ選択ヘッダーの戻るボタン
   btnStageBack.addEventListener('click', () => showHomeScreen());

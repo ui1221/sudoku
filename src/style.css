@@ -350,6 +350,12 @@ header {
   padding: 4px 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .app-title {
   font-family: 'Outfit', sans-serif;
   font-size: clamp(1rem, 4.5vw, 1.4rem);
@@ -365,7 +371,7 @@ header {
   flex: 1;
 }
 
-#btn-home, #btn-pause {
+#btn-home, #btn-pause, #btn-mute-toggle {
   width: 40px; height: 40px;
   border: none;
   border-radius: 50%;
@@ -379,7 +385,7 @@ header {
   align-items: center;
   justify-content: center;
 }
-#btn-home:hover, #btn-pause:hover {
+#btn-home:hover, #btn-pause:hover, #btn-mute-toggle:hover {
   transform: scale(1.08);
   box-shadow: var(--shadow-md);
 }
