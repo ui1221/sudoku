@@ -143,7 +143,7 @@ export class Game {
   }
 
   // ====== ゲーム開始 ======
-  start(difficulty = 'medium', stage = null) {
+  start(difficulty = 'medium', stage = null, forceReset = false) {
     this._clearTimer();
     this._history = [];
 
@@ -153,11 +153,13 @@ export class Game {
     }
 
     // 既存のセーブデータがあればロードして再開
-    const data = getSaveData();
-    const existing = data.saves[`${difficulty}_${stage}`];
-    if (existing) {
-      this._restoreState(existing);
-      return;
+    if (!forceReset) {
+      const data = getSaveData();
+      const existing = data.saves[`${difficulty}_${stage}`];
+      if (existing) {
+        this._restoreState(existing);
+        return;
+      }
     }
 
     const { puzzle, solution } = generatePuzzleForStage(difficulty, stage);

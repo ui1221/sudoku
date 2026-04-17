@@ -580,7 +580,7 @@ function setupControls() {
   btnConfirmYes.addEventListener('click', () => {
     confirmOverlay.classList.remove('visible');
     game.togglePause(); // 一時停止解除（タイマー停止のまま保存）
-    game.start(currentDifficulty, game.state?.stage); // 同じステージをリセット
+    game.start(currentDifficulty, game.state?.stage, true); // 同じステージをリセット
   });
 
   // フルイメージオーバーレイ
